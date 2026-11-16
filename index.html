@@ -27,7 +27,7 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--ice);font:500 16px/1.5 var(--ui)}
-#app{height:100dvh;display:flex;flex-direction:column;max-width:1240px;margin:0 auto}
+#app{height:100dvh;display:flex;flex-direction:column}
 button,input,select,textarea{font:inherit;color:inherit;border-radius:0}
 :focus-visible{outline:3px solid var(--ice);outline-offset:2px}
 
@@ -149,6 +149,12 @@ details.topic .tbody{padding:0 14px 14px}
   .pane:last-child{border-right:0}
   .pane.codepane{flex:1.7}
 }
+.deskonly{display:none!important}
+#fsb{display:none;position:fixed;top:10px;right:10px;z-index:20;min-height:44px;padding:0 14px;box-shadow:0 3px 0 var(--edge-d);font-size:14px}
+html.pc .keys{display:none}
+html.pc .deskonly{display:flex!important;align-items:center;justify-content:center}
+html.pc .hdr{padding-right:150px}
+html.pc #fsb.can{display:block}
 @media(prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important}
   .demo .rn{left:calc(100% - 50px)}
@@ -157,6 +163,7 @@ details.topic .tbody{padding:0 14px 14px}
 </head>
 <body>
 <div id="app"></div>
+<button id="fsb" class="btn" type="button" aria-label="Toggle full screen">Full screen</button>
 <div id="toast" role="status" aria-live="polite"></div>
 <noscript>This app needs JavaScript.</noscript>
 
@@ -687,6 +694,7 @@ function typeChar(ta,ch){
   }
   insertAt(ta,ch);
 }
+function formatEditor(ta){try{ta.value=CC.formatC(ta.value);fireInput(ta);}catch(e){toast('Could not format this code');}}
 function pressEnter(ta){
   var v=ta.value,s=ta.selectionStart,e=ta.selectionEnd,ls=v.lastIndexOf('\n',s-1)+1;
   var line=v.slice(ls,s),ind=(line.match(/^[ \t]*/)||[''])[0],open=/\{\s*$/.test(line);
@@ -742,6 +750,7 @@ views.arena=function(){
   ed.addEventListener('input',function(){S.src=ed.value;store.set(draftKey,ed.value);});
   ed.addEventListener('keydown',function(ev){
     if(ev.key==='Tab'){ev.preventDefault();insertAt(ed,'    ');}
+    else if(ev.altKey&&ev.shiftKey&&(ev.key==='F'||ev.key==='f')){ev.preventDefault();formatEditor(ed);}
     else if(ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey)){ev.preventDefault();var rb=document.getElementById(ev.shiftKey?'subb':'runb');if(rb&&!rb.disabled)rb.click();}
   });
   ed.addEventListener('beforeinput',function(ev){
@@ -756,7 +765,7 @@ views.arena=function(){
       onmousedown:function(ev){ev.preventDefault();},
       onclick:function(){
         ed.focus();
-        if(k==='Format'){try{ed.value=CC.formatC(ed.value);fireInput(ed);}catch(e){toast('Could not format this code');}return;}
+        if(k==='Format'){formatEditor(ed);return;}
         if(k==='Tab'){insertAt(ed,'    ');return;}
         typeChar(ed,k);
       }},k);
@@ -770,6 +779,7 @@ views.arena=function(){
     h('div',{class:'pane codepane','data-pane':'code'},keys,ed,con),
     h('div',{class:'pane','data-pane':'board'},h('div',{class:'lanes',id:'board'})));
   var bar=h('div',{class:'bar'},
+    h('button',{class:'btn deskonly',type:'button',id:'fmtb',onclick:function(){formatEditor(ed);}},'Format code'),
     h('button',{class:'btn',id:'runb',onclick:function(){judge(false);}},'Run examples'),
     h('button',{class:'btn pri',id:'subb',onclick:function(){judge(true);}},'Submit'));
   var hdr=h('div',{class:'hdr'},
@@ -968,6 +978,28 @@ function render(){
   else if(v!=='home'){root.replaceChildren(views[v]());}
   if(v==='results'&&S.gradeFor!==S.matchNo){S.gradeFor=S.matchNo;var me=myPlayer();if(me&&me.total>0&&me.passed>=me.total)markSolved(S.pid);startGrade();}
 }
+// ---- PC detection: mouse and keyboard devices hide the symbol bar and get PC-only controls ----
+(function(){
+  var pc=false;
+  try{
+    pc=matchMedia('(hover:hover) and (pointer:fine)').matches||(!navigator.maxTouchPoints&&!/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
+  }catch(e){}
+  if(pc)document.documentElement.classList.add('pc');
+})();
+// ---- full screen button (desktop browsers only) ----
+(function(){
+  var b=document.getElementById('fsb'),de=document.documentElement;
+  if(!b||!document.fullscreenEnabled||!de.requestFullscreen)return;
+  var standalone=window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches);
+  if(standalone)return;
+  b.classList.add('can');
+  function label(){b.textContent=document.fullscreenElement?'Exit full screen':'Full screen';}
+  b.addEventListener('click',function(){
+    try{if(document.fullscreenElement)document.exitFullscreen();else de.requestFullscreen({navigationUI:'hide'});}catch(e){}
+  });
+  document.addEventListener('fullscreenchange',label);
+  label();
+})();
 // ---- install + automatic updates (service worker is network-first, so every online launch is the newest version) ----
 (function(){
   if(!('serviceWorker' in navigator)||!/^https?:$/.test(location.protocol))return;

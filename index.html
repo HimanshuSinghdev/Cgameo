@@ -649,14 +649,17 @@ views.arena=function(){
   ed.value=store.get(draftKey)||p.starter;
   S.src=ed.value;
   ed.addEventListener('input',function(){S.src=ed.value;store.set(draftKey,ed.value);});
-  ed.addEventListener('keydown',function(ev){if(ev.key==='Tab'){ev.preventDefault();insertAt(ed,'    ');}});
+  ed.addEventListener('keydown',function(ev){
+    if(ev.key==='Tab'){ev.preventDefault();insertAt(ed,'    ');}
+    else if(ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey)){ev.preventDefault();var rb=document.getElementById(ev.shiftKey?'subb':'runb');if(rb&&!rb.disabled)rb.click();}
+  });
   ed.addEventListener('beforeinput',function(ev){
     var it=ev.inputType,d=ev.data;
     if(it==='insertLineBreak'||it==='insertParagraph'||(it==='insertText'&&d==='\n')){ev.preventDefault();pressEnter(ed);return;}
     if(it==='insertText'&&!ev.isComposing&&d&&d.length===1&&(PAIRS[d]||CLOSERS.indexOf(d)>=0)){ev.preventDefault();typeChar(ed,d);return;}
     if(it==='deleteContentBackward'&&pressBackspace(ed))ev.preventDefault();
   });
-  var keyList=['{','}','(',')','[',']',';','"',"'",'&','*','#','<','>','%','=','\\','Tab','Format'];
+  var keyList=['{','}','(',')','[',']',';',',','"',"'",'&','*','+','-','/','=','!','|','<','>','%','#',':','?','\\','Tab','Format'];
   var keys=h('div',{class:'keys',role:'toolbar','aria-label':'Symbol keys'},keyList.map(function(k){
     return h('button',{type:'button',class:'btn','aria-label':k==='Tab'?'Insert indent':k==='Format'?'Format code':'Insert '+k,
       onmousedown:function(ev){ev.preventDefault();},

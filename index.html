@@ -70,6 +70,10 @@ h1,h2,h3,p{margin:0}
 @keyframes dash{to{left:calc(100% - 50px)}}
 
 /* players */
+.pl{flex-wrap:wrap;row-gap:4px}
+.pl .nm{flex:1 1 0;white-space:normal;overflow-wrap:break-word;line-height:1.25;min-width:60px}
+.pl .chip{flex:0 0 auto}
+.pl .small{margin-left:auto}
 .pl{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:3px solid var(--bg)}
 .pl:first-of-type{border-top:0}
 .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -79,7 +83,8 @@ h1,h2,h3,p{margin:0}
 
 /* arena */
 .hdr{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--cab);border-bottom:3px solid var(--edge)}
-.hdr h2{font-size:17px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr h2{font-size:17px;line-height:1.2;flex:1;min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+@media(max-width:360px){.hdr{gap:8px;padding:8px}.hdr h2{font-size:15px}}
 .hdr .btn{min-height:44px;min-width:44px;padding:0 10px;box-shadow:none}
 #timer{font:16px/1 var(--px);min-width:80px;text-align:right}
 #timer.low{color:var(--hit);animation:blink 1s steps(2) infinite}
@@ -871,11 +876,12 @@ function updateBoard(){
   var b=$('#board');if(!b)return;
   if(b.getAttribute('data-key')!==laneKey())buildBoard();else paintBoard();
 }
+function wordFor(s){return s>=9.5?'Outstanding':s>=8.5?'Excellent':s>=6.5?'Good':s>=5?'Fair':s>=3?'Needs work':'Not yet';}
 function gradeCard(){
   var g=S.myGrade,st=S.gradeState,body;
   if(g){
     body=[h('div',{class:'score'},String(g.score),h('small',null,'out of 10')),
-      h('div',{style:'font-weight:700'},CC.scoreWord(g.grade)),
+      h('div',{style:'font-weight:700'},CC.scoreWord(g.pen?wordFor(g.score):g.grade)),
       g.hintN?h('div',{class:'small'},'Hints used: '+g.hintN+(g.pen?' (-'+g.pen+' score)':'')):null,
       h('p',{class:'small',style:'margin-top:6px'},CC.scoreSummary(g.summary))];
     if(g.tips&&g.tips.length)body.push(h('div',{style:'margin-top:12px'},h('div',{class:'small'},'Quick wins'),g.tips.map(function(tp){

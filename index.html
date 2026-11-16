@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="C Duel">
 <meta name="color-scheme" content="dark">
+<meta name="author" content="Himanshu Singh">
 <meta name="description" content="Race other players with C code. Pass every test first to win.">
 <title>C-Slayer Duel</title>
 <style>
@@ -65,6 +66,8 @@ h1,h2,h3,p{margin:0}
 .rn{position:absolute;left:0;bottom:5px;line-height:0;transition:left .6s steps(8)}
 .flag{position:absolute;right:0;top:0;line-height:0}
 .demo{display:flex;flex-direction:column;gap:10px;margin:4px 0 6px}
+.demo .dn{font:700 13px/1.2 var(--ui);color:var(--coin);margin-bottom:-4px}.demo .dn.dim{color:var(--mut)}
+.credit{margin-top:14px;text-align:center}
 .demo .rn.a{animation:dash 2.2s steps(22) .4s forwards}
 .demo .rn.b{animation:dash 2.7s steps(27) .4s forwards}
 @keyframes dash{to{left:calc(100% - 50px)}}
@@ -331,7 +334,7 @@ function weakSpot(){
 }
 function startPractice(pid){
   if(!S.name)S.name='Player';
-  startSolo();S.pid=pid;S.rand=false;startMatch();
+  startSolo();S.untimed=true;S.dur=3600;S.pid=pid;S.rand=false;startMatch();
 }
 
 /* ---------- C engine: the C-Slayer compiler, VM and grader, running in a Web Worker ---------- */
@@ -410,6 +413,7 @@ function applyState(v){
 }
 function randCode(){var s='';for(var i=0;i<4;i++)s+=CODE_CHARS[Math.floor(Math.random()*CODE_CHARS.length)];return s;}
 function resetNet(){
+  S.untimed=false;S.dur=600;
   clearInterval(S.tick);S.tick=null;
   try{if(S.peer)S.peer.destroy();}catch(e){}
   S.peer=null;S.conns={};S.hostConn=null;S.role=null;S.code='';S.myId=null;
@@ -539,6 +543,7 @@ function finish(winnerId,reason){
 }
 function onTick(){
   var t=$('#timer');
+  if(S.untimed&&S.phase==='live'){S.endAt=Date.now()+3600000;if(t){t.textContent=fmt(Date.now()-S.startAt);t.classList.remove('low');t.title='Learning mode: no time limit';}return;}
   var left=S.endAt-Date.now();
   if(t){t.textContent=fmt(left);t.classList.toggle('low',left<30000&&left>0);}
   if(isHost()&&S.phase==='live'&&left<=0){
@@ -594,7 +599,8 @@ function copyText(t,msg){
 }
 function demoRace(){
   return h('div',{class:'demo','aria-hidden':'true'},
-    trackEl(PCOL[0],0,'','a'),trackEl(PCOL[1],0,'','b'));
+    h('div',{class:'dn'},'Himanshu Singh'),trackEl(PCOL[0],0,'','a'),
+    h('div',{class:'dn dim'},'Next challenger'),trackEl(PCOL[1],0,'','b'));
 }
 var installEv=null;
 function showInstall(){
@@ -626,7 +632,9 @@ views.home=function(){
       h('button',{class:'btn ghost',onclick:function(){if(needName())startSolo();}},'Practice solo'),
       h('button',{class:'btn',type:'button',onclick:function(){S.screen='learn';S.view=null;render();}},'Learning path'),
       h('div',{id:'instslot'})),
-    h('p',{class:'small',style:'margin-top:22px'},'Your code runs in your own browser. The room only sees your test scores, never your code.')));
+    h('p',{class:'small',style:'margin-top:22px'},'Practice solo: pick any problem and beat the clock. Learning path: go topic by topic with hints, no timer.'),
+    h('p',{class:'small',style:'margin-top:10px'},'Your code runs in your own browser. The room only sees your test scores, never your code.'),
+    h('p',{class:'small credit'},'Made by Himanshu Singh')));
 };
 views.lobby=function(){
   var host=isHost();
@@ -917,7 +925,7 @@ views.results=function(){
   var head;
   if(w){
     var crown=h('div',{class:'crown rise'});crown.appendChild(sprite(CROWN,colorOf(w.id),6));
-    head=[crown,h('h2',{class:'win rise'},w.id===S.myId?'You win!':w.name+' wins'),
+    head=[crown,h('h2',{class:'win rise'},S.untimed?'Solved!':w.id===S.myId?'You win!':w.name+' wins'),
       h('p',{class:'small'},S.reason==='solved'?('Solved every test in '+fmtT(w.lastT)+'.'):'Most tests passed when time ran out.')];
   }else head=[h('h2',{class:'win rise'},'Time is up'),h('p',{class:'small'},'Nobody passed a test.')];
   return h('div',{class:'wrap'},h('div',{class:'narrow'},
@@ -926,11 +934,13 @@ views.results=function(){
     gradeCard(),
     rankPanel(),
     h('div',{class:'stack'},
-      isHost()?h('button',{class:'btn pri',onclick:function(){
+      S.untimed?h('button',{class:'btn pri',type:'button',onclick:function(){goHome();S.screen='learn';S.view=null;render();}},'Back to Learning path'):null,
+      S.untimed?h('button',{class:'btn',type:'button',onclick:function(){startPractice(S.pid);}},'Try this problem again'):null,
+      S.untimed?null:isHost()?h('button',{class:'btn pri',onclick:function(){
         S.phase='lobby';S.winnerId=null;S.reason='';
         S.players.forEach(function(p){p.passed=0;p.subs=0;p.lastT=0;p.grade=null;});
         pushState();}},'Rematch'):h('p',{class:'small'},'Waiting for the host to start a rematch.'),
-      h('button',{class:'btn ghost',onclick:function(){goHome();}},'Leave room'))));
+      h('button',{class:'btn ghost',onclick:function(){goHome();}},S.untimed?'Back to home':'Leave room'))));
 };
 
 views.learn=function(){

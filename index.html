@@ -66,8 +66,19 @@ h1,h2,h3,p{margin:0}
 .rn{position:absolute;left:0;bottom:5px;line-height:0;transition:left .6s steps(8)}
 .flag{position:absolute;right:0;top:0;line-height:0}
 .demo{display:flex;flex-direction:column;gap:10px;margin:4px 0 6px}
-.demo .dn{font:700 13px/1.2 var(--ui);color:var(--coin);margin-bottom:-4px}.demo .dn.dim{color:var(--mut)}
-.credit{margin-top:14px;text-align:center}
+.demo .dn{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font:700 13px/1.2 var(--ui);margin-bottom:-4px}
+.demo .dn.dim{color:var(--mut)}
+.demo .dn.win{opacity:.35;margin-bottom:0;animation:lit 1s steps(1) 2.6s forwards}
+.demo .dn.win .dname{font:11px/1.4 var(--px);color:var(--coin);text-shadow:2px 2px 0 var(--coin-d)}
+.demo .dn.win .dc{line-height:0;opacity:0;animation:pop .45s steps(1) 2.7s forwards}
+.demo .dn.win+.track{animation:gold .01s 2.6s forwards}
+@keyframes lit{0%{opacity:.35}20%{opacity:1}40%{opacity:.35}60%{opacity:1}80%{opacity:.35}100%{opacity:1}}
+@keyframes pop{0%{opacity:0;transform:translateY(8px)}34%{opacity:.6;transform:translateY(5px)}67%{opacity:.85;transform:translateY(2px)}100%{opacity:1;transform:none}}
+@keyframes gold{to{border-color:var(--coin)}}
+.plate{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:24px;padding:14px 12px;background:var(--deep);border:3px solid var(--coin-d);box-shadow:0 4px 0 var(--edge-d);text-align:center}
+.plate .dc2{line-height:0;flex:0 0 auto}
+.plate .small{margin-bottom:6px}
+.plate .pname{font:12px/1.5 var(--px);color:var(--coin);text-shadow:2px 2px 0 var(--coin-d);overflow-wrap:anywhere}
 .demo .rn.a{animation:dash 2.2s steps(22) .4s forwards}
 .demo .rn.b{animation:dash 2.7s steps(27) .4s forwards}
 @keyframes dash{to{left:calc(100% - 50px)}}
@@ -159,6 +170,7 @@ html.pc .deskonly{display:flex!important;align-items:center;justify-content:cent
 html.pc .hdr{padding-right:150px}
 html.pc #fsb.can{display:block}
 @media(prefers-reduced-motion:reduce){
+  .demo .dn.win{opacity:1}.demo .dn.win .dc{opacity:1}.demo .dn.win+.track{border-color:var(--coin)}
   *{animation:none!important;transition:none!important}
   .demo .rn{left:calc(100% - 50px)}
 }
@@ -598,9 +610,16 @@ function copyText(t,msg){
   else toast('Copy is not available here');
 }
 function demoRace(){
+  var crown=h('span',{class:'dc'});crown.appendChild(sprite(CROWN,'#ffd23f',3));
   return h('div',{class:'demo','aria-hidden':'true'},
-    h('div',{class:'dn'},'Himanshu Singh'),trackEl(PCOL[0],0,'','a'),
-    h('div',{class:'dn dim'},'Next challenger'),trackEl(PCOL[1],0,'','b'));
+    h('div',{class:'dn win'},crown,h('span',{class:'dname'},'Himanshu Singh'),h('span',{class:'chip acc'},'Creator')),
+    trackEl(PCOL[0],0,'','a'),
+    h('div',{class:'dn dim'},'Your name here'),trackEl(PCOL[1],0,'','b'));
+}
+function creditPlate(){
+  var l=h('span',{class:'dc2'}),r=h('span',{class:'dc2'});
+  l.appendChild(sprite(CROWN,'#ffd23f',3));r.appendChild(sprite(CROWN,'#ffd23f',3));
+  return h('div',{class:'plate'},l,h('div',null,h('div',{class:'small'},'Made by '),h('div',{class:'pname'},'Himanshu Singh')),r);
 }
 var installEv=null;
 function showInstall(){
@@ -634,7 +653,7 @@ views.home=function(){
       h('div',{id:'instslot'})),
     h('p',{class:'small',style:'margin-top:22px'},'Practice solo: pick any problem and beat the clock. Learning path: go topic by topic with hints, no timer.'),
     h('p',{class:'small',style:'margin-top:10px'},'Your code runs in your own browser. The room only sees your test scores, never your code.'),
-    h('p',{class:'small credit'},'Made by Himanshu Singh')));
+    creditPlate()));
 };
 views.lobby=function(){
   var host=isHost();

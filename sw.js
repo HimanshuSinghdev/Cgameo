@@ -1,5 +1,5 @@
 // Network-first: every online launch gets the newest files from GitHub Pages; the cache is only an offline fallback.
-var CACHE = 'cduel-v1';
+var CACHE = 'cduel-v2';
 var SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', function (e) {
   self.skipWaiting();

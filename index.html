@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1a1446">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="C Duel">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Race other players with C code. Pass every test first to win.">
 <title>C-Slayer Duel</title>
@@ -533,12 +539,24 @@ function demoRace(){
   return h('div',{class:'demo','aria-hidden':'true'},
     trackEl(PCOL[0],0,'','a'),trackEl(PCOL[1],0,'','b'));
 }
+var installEv=null;
+function showInstall(){
+  var slot=document.getElementById('instslot');
+  if(!slot||!installEv||slot.firstChild)return;
+  slot.appendChild(h('button',{class:'btn ghost',type:'button',onclick:function(){
+    var ev=installEv;if(!ev)return;installEv=null;slot.textContent='';
+    try{ev.prompt();}catch(e){}
+  }},'Install app'));
+}
+window.addEventListener('beforeinstallprompt',function(ev){ev.preventDefault();installEv=ev;showInstall();});
+window.addEventListener('appinstalled',function(){installEv=null;var s=document.getElementById('instslot');if(s)s.textContent='';toast('Installed. Open it from your home screen');});
 views.home=function(){
   var nameIn=h('input',{class:'field',id:'name',maxlength:'16',autocomplete:'nickname',placeholder:'Type your name',value:S.name});
   var codeIn=h('input',{class:'field',id:'jc',maxlength:'4',autocapitalize:'characters',autocomplete:'off',spellcheck:'false',placeholder:'Code',style:'text-transform:uppercase;text-align:center;font-weight:700;letter-spacing:.2em','aria-label':'Room code'});
   var qs=new URLSearchParams(location.search).get('room');
   if(qs)codeIn.value=String(qs).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
   function needName(){var n=cleanName(nameIn.value);if(!nameIn.value.trim()){toast('Enter your name first');nameIn.focus();return false;}S.name=n;store.set('cduel_name',n);return true;}
+  setTimeout(showInstall,0);
   return h('div',{class:'wrap'},h('div',{class:'narrow'},
     h('h1',{class:'logo'},'C-Slayer',h('br'),'Duel'),
     h('p',{class:'tag'},'Race other players. Pass every test first to win.'),
@@ -548,7 +566,8 @@ views.home=function(){
     h('div',{class:'stack'},
       h('button',{class:'btn pri',onclick:function(){if(needName())createRoom();}},'Create room'),
       h('div',{class:'row'},codeIn,h('button',{class:'btn fix',onclick:function(){if(needName())joinRoom(codeIn.value);}},'Join room')),
-      h('button',{class:'btn ghost',onclick:function(){if(needName())startSolo();}},'Practice solo')),
+      h('button',{class:'btn ghost',onclick:function(){if(needName())startSolo();}},'Practice solo'),
+      h('div',{id:'instslot'})),
     h('p',{class:'small',style:'margin-top:22px'},'Your code runs in your own browser. The room only sees your test scores, never your code.')));
 };
 views.lobby=function(){
@@ -844,6 +863,31 @@ function render(){
   else if(v!=='home'){root.replaceChildren(views[v]());}
   if(v==='results'&&S.gradeFor!==S.matchNo){S.gradeFor=S.matchNo;var me=myPlayer();if(me&&me.total>0&&me.passed>=me.total)markSolved(S.pid);startGrade();}
 }
+// ---- install + automatic updates (service worker is network-first, so every online launch is the newest version) ----
+(function(){
+  if(!('serviceWorker' in navigator)||!/^https?:$/.test(location.protocol))return;
+  try{navigator.serviceWorker.register('sw.js').catch(function(){});}catch(e){}
+  var base=null,last=0,warned=false;
+  function sig(){
+    return fetch(location.pathname,{method:'HEAD',cache:'no-store'}).then(function(r){
+      return r.ok?(r.headers.get('etag')||r.headers.get('last-modified')||r.headers.get('content-length')):null;
+    }).catch(function(){return null;});
+  }
+  function check(){
+    if(document.hidden||Date.now()-last<20000)return;
+    last=Date.now();
+    sig().then(function(s){
+      if(!s)return;
+      if(base===null){base=s;return;}
+      if(s===base)return;
+      if(S.screen==='home'){var ae=document.activeElement;if(ae&&ae.tagName==='INPUT'){last=0;return;}location.reload();}
+      else if(!warned){warned=true;toast('New version ready. It installs when you leave the room');}
+    });
+  }
+  check();
+  document.addEventListener('visibilitychange',check);
+  setInterval(check,60000);
+})();
 CC.lang=store.get('cduel_lang')==='hi'?'hi':'en';
 if(!window.Peer||!window.CC||!CC.formatC||!CC.explain){root.textContent='Failed to load the app. Reload the page.';}
 else render();
